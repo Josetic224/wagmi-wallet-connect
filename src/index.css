@@ -17,21 +17,18 @@ body {
 }
 
 .button {
-  background-color: #646cff;
-  border-color: #747bff;
-  border-radius: 20px;
-  border: 1px solid #747bff;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 500;
-  height: 38px;
-  line-height: 38px;
-  padding: 0 20px;
-  transition: background-color 0.2s;
+  background-color: #007bff; /* Blue color */
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 5px;
 }
+
 .button:hover {
-  background-color: #747bff;
+  background-color: #0056b3; /* Darker blue for hover effect */
 }
+
 .button:disabled {
   opacity: 0.5;
   pointer-events: none;
