@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./index.css";
-import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useSwitchChain, useBalance, useChainId } from "wagmi";
 import { supportedChains } from "./wagmi";
 
 const Wagmi = () => {
@@ -8,6 +8,13 @@ const Wagmi = () => {
   const { connectors, connect, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
+  const chainId = useChainId();
+  
+  // New: Use the useBalance hook to fetch account balance
+  const { data: balanceData, isLoading: isBalanceLoading } = useBalance({
+    address: address,
+    watch: true,
+  });
 
   const [isWalletSelectionOpen, setWalletSelectionOpen] = useState(false);
   const [activeConnector, setActiveConnector] = useState(null);
@@ -15,6 +22,47 @@ const Wagmi = () => {
   const [connectStatus, setConnectStatus] = useState({});
   const [walletIcons, setWalletIcons] = useState({});
   const [activePage, setActivePage] = useState("intro");
+  
+  // New: State for formatted balance display
+  const [formattedBalance, setFormattedBalance] = useState({
+    value: "0.00",
+    symbol: "ETH",
+    usdValue: "0.00",
+  });
+
+  // New: Fetch token prices for USD conversion (mock implementation)
+  const getTokenPrice = (symbol) => {
+    // This would be replaced with an actual price API
+    const mockPrices = {
+      "ETH": 3450.75,
+      "MATIC": 1.25,
+      "AVAX": 28.50,
+      "BNB": 440.80,
+      "ARBITRUM": 1.75,
+      "OPTIMISM": 3.20,
+    };
+    
+    return mockPrices[symbol] || 0;
+  };
+
+  // New: Update balance display when balanceData changes
+  useEffect(() => {
+    if (balanceData) {
+      // Format the native token value (truncated to 4 decimal places)
+      const tokenValue = parseFloat(balanceData.formatted).toFixed(4);
+      const tokenSymbol = balanceData.symbol;
+      
+      // Calculate USD value based on token price
+      const tokenPrice = getTokenPrice(tokenSymbol);
+      const usdValue = (parseFloat(tokenValue) * tokenPrice).toFixed(2);
+      
+      setFormattedBalance({
+        value: tokenValue,
+        symbol: tokenSymbol,
+        usdValue: usdValue,
+      });
+    }
+  }, [balanceData, chainId]);
 
   useEffect(() => {
     // Extract icons from connectors
@@ -118,7 +166,7 @@ const Wagmi = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
-                  <h1 className="text-2xl font-bold text-white mb-2">Nebula Finance</h1>
+                  <h1 className="text-2xl font-bold text-white mb-2">JoeLynn Finance</h1>
                   <p className="text-slate-400 text-sm">Discover the universe of decentralized finance</p>
                 </div>
                 
@@ -238,9 +286,9 @@ const Wagmi = () => {
                   
                   {activePage === "about" && (
                     <div className="space-y-4">
-                      <h2 className="text-lg font-semibold text-white mb-4">About Nebula Finance</h2>
+                      <h2 className="text-lg font-semibold text-white mb-4">About JoeLynn Finance</h2>
                       <p className="text-sm text-slate-300 mb-4">
-                        Nebula Finance was created to bring institutional-grade blockchain tools to everyone. Our platform simplifies complex Web3 interactions while providing powerful insights into your digital assets.
+                        JoeLynn Finance was created to bring institutional-grade blockchain tools to everyone. Our platform simplifies complex Web3 interactions while providing powerful insights into your digital assets.
                       </p>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-slate-800/50 border border-slate-700">
@@ -410,7 +458,7 @@ const Wagmi = () => {
                 </div>
               </div>
               
-              {/* Dashboard overview */}
+              {/* Dashboard overview - WITH DYNAMIC BALANCE */}
               <div className="pt-2">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium text-white">Dashboard Overview</h3>
@@ -427,32 +475,63 @@ const Wagmi = () => {
                       </div>
                       <div className="flex flex-col items-end">
                         <span className="text-xs text-slate-400">Current Balance</span>
-                        <span className="text-lg font-semibold text-white">$8,324.75</span>
+                        {isBalanceLoading ? (
+                          <div className="flex items-center gap-2">
+                            <svg className="animate-spin h-4 w-4 text-teal-400" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            <span className="text-sm text-slate-300">Loading...</span>
+                          </div>
+                        ) : (
+                          <div className="text-right">
+                            <span className="text-lg font-semibold text-white">${formattedBalance.usdValue}</span>
+                            <div className="text-xs text-teal-400 mt-1">
+                              {formattedBalance.value} {formattedBalance.symbol}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-1.5 mb-1">
-                      <div className="bg-gradient-to-r from-sky-500 to-teal-500 h-1.5 rounded-full" style={{ width: "67%" }}></div>
+                      <div className="bg-gradient-to-r from-sky-500 to-teal-500 h-1.5 rounded-full" style={{ width: `${Math.min(parseFloat(formattedBalance.usdValue) / 100, 100)}%` }}></div>
                     </div>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-400">Monthly Goal</span>
-                      <span className="text-teal-400">67%</span>
+                      <span className="text-teal-400">{Math.min(Math.round(parseFloat(formattedBalance.usdValue) / 100 * 100), 100)}%</span>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
                       <div className="flex flex-col">
-                        <span className="text-xs text-slate-400">Assets</span>
-                        <span className="text-lg font-semibold text-white">14</span>
-                        <span className="text-xs text-teal-400 mt-1">+3 this month</span>
+                        <span className="text-xs text-slate-400">Chain ID</span>
+                        <span className="text-lg font-semibold text-white">{chainId || "—"}</span><span className="text-lg font-semibold text-white">{chainId || "—"}</span>
+                        <span className="text-xs text-teal-400 mt-1">{chain?.name || "Unknown Network"}</span>
                       </div>
                     </div>
                     <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
                       <div className="flex flex-col">
-                        <span className="text-xs text-slate-400">APY</span>
-                        <span className="text-lg font-semibold text-white">5.8%</span>
-                        <span className="text-xs text-teal-400 mt-1">+0.2% from last week</span>
+                        <span className="text-xs text-slate-400">Network Status</span>
+                        <span className="text-lg font-semibold text-white">
+                          <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                          Active
+                        </span>
+                        <span className="text-xs text-teal-400 mt-1">Low gas fees</span>
                       </div>
+                    </div>
+                  </div>
+                  
+                  {/* Recent activity - simplified */}
+                  <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-slate-400">Recent Activity</span>
+                    </div>
+                    <div className="text-xs text-center text-slate-400 py-2">
+                      {isBalanceLoading ? 
+                        "Loading recent activity..." : 
+                        `Balance updated for ${chain?.name || "current network"}`
+                      }
                     </div>
                   </div>
                 </div>
@@ -477,4 +556,3 @@ const Wagmi = () => {
 };
 
 export default Wagmi;
-
